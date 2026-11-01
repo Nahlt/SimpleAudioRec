@@ -13,7 +13,7 @@ Full requirements (Italian): [docs/REQUISITI.md](docs/REQUISITI.md). User guide 
 ## Download
 
 - Latest `main` build: **Actions → Build Windows →** latest run **→ Artifacts**.
-- Versions: **Releases** page (created for every `v*` tag).
+- Versions: **Releases** page (the zip is attached automatically when a release is published).
 
 The executable is not signed: on first launch SmartScreen asks for confirmation (*More info → Run anyway*).
 
@@ -41,7 +41,7 @@ cargo test -p simpleaudiorec_core
 cargo build --release -p simpleaudiorec   # target\release\SimpleAudioRec.exe
 ```
 
-On Windows you need stable Rust with the MSVC toolchain; the C runtime is linked statically (`.cargo/config.toml`). The GitHub pipeline (`.github/workflows/build-windows.yml`) builds on `windows-latest` on every push to `main` and publishes a Release for every `v*` tag.
+On Windows you need stable Rust with the MSVC toolchain; the C runtime is linked statically (`.cargo/config.toml`). The GitHub pipeline (`.github/workflows/build-windows.yml`) builds on `windows-latest` on every push to `main` and attaches the zip to every published Release.
 
 ## License
 
