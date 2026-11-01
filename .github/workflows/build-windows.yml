@@ -3,13 +3,20 @@ name: Build Windows
 # Compila la versione portabile su un server Windows di GitHub.
 # - a ogni push sul ramo main e manualmente (Actions > Build Windows > Run workflow):
 #   l'eseguibile si scarica da "Artifacts" in fondo alla pagina dell'esecuzione;
-# - quando si crea un tag v* (es. v0.1.0): viene anche pubblicata una Release con lo zip.
+# - quando si pubblica una Release dal sito (es. tag v1.0.0): lo zip viene allegato alla Release;
+# - manualmente indicando il tag di una Release esistente: ricompila quel tag e allega lo zip.
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag di una Release esistente a cui allegare lo zip (vuoto = solo Artifacts)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -21,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Rust
         uses: dtolnay/rust-toolchain@stable
@@ -37,7 +46,8 @@ jobs:
       - name: Pacchetto
         shell: pwsh
         run: |
-          $ver = if ($env:GITHUB_REF -like 'refs/tags/v*') { $env:GITHUB_REF_NAME } else { "main-$($env:GITHUB_SHA.Substring(0,7))" }
+          $tag = "${{ github.event.release.tag_name || inputs.tag }}"
+          $ver = if ($tag) { $tag } else { "main-$($env:GITHUB_SHA.Substring(0,7))" }
           $dir = "dist/SimpleAudioRec"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           Copy-Item target/release/SimpleAudioRec.exe, LEGGIMI.txt, README.txt, LICENSE, THIRD_PARTY_NOTICES.txt $dir
@@ -52,7 +62,8 @@ jobs:
           retention-days: 30
 
       - name: Allega lo zip alla Release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.release.tag_name || inputs.tag }}
           files: dist/*.zip
