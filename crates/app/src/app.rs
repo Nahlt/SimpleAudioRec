@@ -21,9 +21,11 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{Receiver, channel};
 use std::time::{Duration, Instant};
 
-const MAIN_SIZE: [f32; 2] = [420.0, 250.0];
-const SAVE_SIZE: [f32; 2] = [440.0, 340.0];
-const SETTINGS_SIZE: [f32; 2] = [520.0, 600.0];
+const MAIN_WIDTH: f32 = 420.0;
+const SAVE_WIDTH: f32 = 440.0;
+const MIN_HEIGHT: f32 = 150.0;
+const MARGIN: f32 = 14.0;
+const SETTINGS_SIZE: [f32; 2] = [520.0, 540.0];
 const DISK_LOW_BYTES: u64 = 1_000_000_000;
 
 struct SaveState {
@@ -68,6 +70,8 @@ enum Level {
 struct Notice {
     text: String,
     level: Level,
+    /// File salvato: percorso completo (tooltip) e link "Apri cartella".
+    file: Option<PathBuf>,
 }
 
 pub struct SimpleAudioRecApp {
@@ -94,6 +98,11 @@ pub struct SimpleAudioRecApp {
     disk_warned: bool,
     bookmark_flash: Option<Instant>,
     allow_close: bool,
+    /// Chiudere l'app al termine del salvataggio (scelta "Ferma e salva" alla chiusura).
+    close_after_save: bool,
+    ctx_close: bool,
+    /// Altezza del contenuto dell'ultimo frame (la finestra si adatta).
+    content_height: f32,
 }
 
 impl SimpleAudioRecApp {
@@ -153,12 +162,15 @@ impl SimpleAudioRecApp {
             capturing_hotkey: None,
             taskbar,
             last_title: String::new(),
-            last_size: MAIN_SIZE,
+            last_size: [MAIN_WIDTH, 250.0],
             window_pos: None,
             last_disk_check: Instant::now(),
             disk_warned: false,
             bookmark_flash: None,
             allow_close: false,
+            close_after_save: false,
+            ctx_close: false,
+            content_height: 220.0,
         };
         if let Some(e) = settings_error {
             let msg = fill(app.t().settings_error, &[("err", &e)]);
@@ -175,7 +187,7 @@ impl SimpleAudioRecApp {
 
     fn notify(&mut self, text: String, level: Level) {
         self.notices.retain(|n| n.text != text);
-        self.notices.push(Notice { text, level });
+        self.notices.push(Notice { text, level, file: None });
         if self.notices.len() > 3 {
             self.notices.remove(0);
         }
@@ -371,10 +383,19 @@ impl SimpleAudioRecApp {
                     self.settings.last_dir = Some(d);
                     self.save_settings();
                 }
-                let shown = files.first().map(|p| p.display().to_string()).unwrap_or_default();
+                let first = files.first().cloned();
+                let shown = first
+                    .as_ref()
+                    .and_then(|p| p.file_name())
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
                 let msg = fill(self.t().saved_to, &[("path", &shown)]);
                 self.notify(msg, Level::Info);
+                if let Some(n) = self.notices.last_mut() {
+                    n.file = first;
+                }
                 self.next_recovery();
+                self.close_if_requested();
             }
             Err(e) => {
                 let msg = fill(self.t().save_error, &[("err", &e)]);
@@ -389,6 +410,14 @@ impl SimpleAudioRecApp {
             let _ = save.finished.session.discard();
         }
         self.next_recovery();
+        self.close_if_requested();
+    }
+
+    fn close_if_requested(&mut self) {
+        if self.close_after_save && matches!(self.phase, Phase::Idle) && self.dialog.is_none() {
+            self.allow_close = true;
+            self.ctx_close = true;
+        }
     }
 
     fn handle_action(&mut self, a: Action, ctx: &egui::Context) {
@@ -513,17 +542,24 @@ impl SimpleAudioRecApp {
     }
 
     fn notices_ui(&mut self, ui: &mut egui::Ui) {
+        let t = self.t();
         let mut remove = None;
         for (i, n) in self.notices.iter().enumerate() {
-            ui.horizontal_wrapped(|ui| {
+            ui.horizontal(|ui| {
                 let col = match n.level {
                     Level::Info => ui.visuals().weak_text_color(),
                     Level::Warn => ORANGE,
                 };
-                if ui.small_button("✕").clicked() {
+                if ui.small_button("×").clicked() {
                     remove = Some(i);
                 }
-                ui.label(RichText::new(&n.text).color(col).size(12.0));
+                let label = ui.add(egui::Label::new(RichText::new(&n.text).color(col).size(12.0)).wrap());
+                if let Some(f) = &n.file {
+                    label.on_hover_text(f.display().to_string());
+                    if ui.link(RichText::new(t.open_folder).size(12.0)).clicked() {
+                        open_in_folder(f);
+                    }
+                }
             });
         }
         if let Some(i) = remove {
@@ -771,7 +807,9 @@ impl SimpleAudioRecApp {
                     ui.horizontal(|ui| {
                         if ui.button(RichText::new(t.stop_and_save).strong()).clicked() {
                             keep = false;
+                            self.close_after_save = true;
                             self.stop(ctx);
+                            self.close_if_requested();
                         }
                         if ui.button(t.cancel).clicked() {
                             keep = false;
@@ -836,12 +874,13 @@ impl SimpleAudioRecApp {
 
     fn update_window(&mut self, ctx: &egui::Context) {
         let t = self.t();
+        let h = (self.content_height + 2.0 * MARGIN).max(MIN_HEIGHT).ceil();
         let size = match (&self.view, &self.phase) {
             (View::Settings, _) => SETTINGS_SIZE,
-            (_, Phase::Save(_)) => SAVE_SIZE,
-            _ => MAIN_SIZE,
+            (_, Phase::Save(_)) => [SAVE_WIDTH, h],
+            _ => [MAIN_WIDTH, h],
         };
-        if size != self.last_size {
+        if (size[0] - self.last_size[0]).abs() > 0.5 || (size[1] - self.last_size[1]).abs() > 2.0 {
             self.last_size = size;
             ctx.send_viewport_cmd(ViewportCommand::InnerSize(size.into()));
         }
@@ -879,6 +918,24 @@ impl SimpleAudioRecApp {
             } else if free >= DISK_LOW_BYTES {
                 self.disk_warned = false;
             }
+        }
+    }
+}
+
+/// Apre Esplora risorse con il file selezionato.
+fn open_in_folder(file: &std::path::Path) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let mut arg = std::ffi::OsString::from("/select,\"");
+        arg.push(file.as_os_str());
+        arg.push("\"");
+        let _ = std::process::Command::new("explorer.exe").raw_arg(arg).spawn();
+    }
+    #[cfg(not(windows))]
+    {
+        if let Some(dir) = file.parent() {
+            let _ = std::process::Command::new("xdg-open").arg(dir).spawn();
         }
     }
 }
@@ -926,16 +983,26 @@ impl eframe::App for SimpleAudioRecApp {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        egui::Frame::central_panel(ui.style()).inner_margin(14.0).show(ui, |ui| {
-            ui.set_min_size(ui.available_size());
+        let bg = ui.max_rect();
+        ui.painter().rect_filled(bg, 0.0, ui.visuals().panel_fill);
+        let inner = egui::Frame::new().inner_margin(MARGIN).show(ui, |ui| {
+            ui.set_width(ui.available_width());
             match (&self.view, &self.phase) {
-                (View::Settings, _) => self.settings_view(ui),
+                (View::Settings, _) => {
+                    ui.set_height(ui.available_height());
+                    self.settings_view(ui)
+                }
                 (_, Phase::Save(_)) => self.save_view(ui),
                 (_, Phase::Exporting(_)) => self.exporting_view(ui),
                 _ => self.main_view(ui),
             }
         });
+        self.content_height = inner.response.rect.height() - 2.0 * MARGIN;
         self.dialog_ui(&ctx);
+        if self.ctx_close {
+            self.ctx_close = false;
+            ctx.send_viewport_cmd(ViewportCommand::Close);
+        }
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

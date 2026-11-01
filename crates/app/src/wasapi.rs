@@ -202,12 +202,13 @@ fn to_f32(data: *const u8, frames: usize, fmt: Fmt, out: &mut Vec<f32>) {
     }
 }
 
-/// Inizializza un client di cattura: prima chiede float a 48 kHz (conversione
-/// fatta da Windows), altrimenti usa il formato nativo del dispositivo.
-unsafe fn init_capture_client(client: &IAudioClient, extra_flags: u32) -> windows::core::Result<Fmt> {
+/// Apre un client di cattura: prima chiede float a 48 kHz (conversione fatta da
+/// Windows); se il dispositivo non lo accetta, riattiva il client e usa il
+/// formato nativo (convertito poi dal ricampionatore interno).
+unsafe fn open_capture(dev: &IMMDevice, extra_flags: u32) -> windows::core::Result<(IAudioClient, Fmt)> {
     unsafe {
+        let client: IAudioClient = dev.Activate(CLSCTX_ALL, None)?;
         let mix = client.GetMixFormat()?;
-        let native = parse_format(mix);
         let mask = if (*mix).wFormatTag == 0xFFFE { (*(mix as *const WAVEFORMATEXTENSIBLE)).dwChannelMask } else { 0 };
         let channels = (*mix).nChannels;
         CoTaskMemFree(Some(mix as _));
@@ -217,13 +218,16 @@ unsafe fn init_capture_client(client: &IAudioClient, extra_flags: u32) -> window
             .Initialize(AUDCLNT_SHAREMODE_SHARED, flags, BUFFER_100NS, 0, &want as *const _ as *const WAVEFORMATEX, None)
             .is_ok()
         {
-            return Ok(Fmt { channels: channels as usize, rate: TARGET_RATE, float: true, bytes: 4 });
+            return Ok((client, Fmt { channels: channels as usize, rate: TARGET_RATE, float: true, bytes: 4 }));
         }
+        let client: IAudioClient = dev.Activate(CLSCTX_ALL, None)?;
         let mix = client.GetMixFormat()?;
+        let native = parse_format(mix);
         let res = client.Initialize(AUDCLNT_SHAREMODE_SHARED, extra_flags, BUFFER_100NS, 0, mix, None);
         CoTaskMemFree(Some(mix as _));
         res?;
-        native.ok_or_else(|| windows::core::Error::from_hresult(windows::core::HRESULT(0x88890008u32 as i32)))
+        let fmt = native.ok_or_else(|| windows::core::Error::from_hresult(windows::core::HRESULT(0x88890008u32 as i32)))?;
+        Ok((client, fmt))
     }
 }
 
@@ -319,8 +323,7 @@ fn run_device_stream(
     let loopback = flow == eRender;
     let my_id = device_id(dev);
     unsafe {
-        let client: IAudioClient = dev.Activate(CLSCTX_ALL, None)?;
-        let fmt = init_capture_client(&client, if loopback { STREAMFLAGS_LOOPBACK } else { 0 })?;
+        let (client, fmt) = open_capture(dev, if loopback { STREAMFLAGS_LOOPBACK } else { 0 })?;
         let cap: IAudioCaptureClient = client.GetService()?;
         let silent = if loopback { SilentRender::new(dev).ok() } else { None };
         client.Start()?;

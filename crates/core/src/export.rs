@@ -14,6 +14,7 @@ use id3::{Frame, Tag, TagLike, Version};
 use mp3lame_encoder::{Bitrate, Builder, Encoder, FlushNoGap, InterleavedPcm, Mode, MonoPcm, Quality};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -83,6 +84,8 @@ impl Mp3Out {
         let mut b = Builder::new().ok_or("LAME non disponibile")?;
         b.set_num_channels(channels).map_err(|e| format!("{e:?}"))?;
         b.set_sample_rate(SAMPLE_RATE).map_err(|e| format!("{e:?}"))?;
+        // Senza questa impostazione LAME sceglierebbe da sé una frequenza più bassa.
+        b.set_output_sample_rate(NonZeroU32::new(SAMPLE_RATE)).map_err(|e| format!("{e:?}"))?;
         b.set_brate(bitrate(kbps)).map_err(|e| format!("{e:?}"))?;
         // Stereo puro (non joint): i due canali restano indipendenti.
         b.set_mode(if channels == 2 { Mode::Stereo } else { Mode::Mono }).map_err(|e| format!("{e:?}"))?;
@@ -397,6 +400,15 @@ mod tests {
         let txt = std::fs::read_to_string(outputs.bookmarks.as_ref().unwrap()).unwrap();
         assert_eq!(txt, "00:00:01  Inizio\r\n00:00:02  Decisione\r\n");
         assert!(!dir.join("x_stereo.mp3.part").exists());
+        // Intestazione del primo frame MP3: 48 kHz, stereo puro (non joint).
+        for (path, mode) in [(outputs.stereo.as_ref().unwrap(), 0u32), (outputs.mono.as_ref().unwrap(), 3u32)] {
+            let d = std::fs::read(path).unwrap();
+            let tag_len = 10 + ((d[6] as usize) << 21 | (d[7] as usize) << 14 | (d[8] as usize) << 7 | d[9] as usize);
+            let h = u32::from_be_bytes([d[tag_len], d[tag_len + 1], d[tag_len + 2], d[tag_len + 3]]);
+            assert_eq!(h >> 21, 0x7ff, "sync");
+            assert_eq!((h >> 10) & 3, 1, "48 kHz");
+            assert_eq!((h >> 6) & 3, mode, "modalità canali");
+        }
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

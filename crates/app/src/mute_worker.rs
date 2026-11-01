@@ -94,7 +94,7 @@ fn run(
             Err(_) => return,
         }
         polls += 1;
-        if polls % 4 == 0 {
+        if polls.is_multiple_of(4) {
             // Il predefinito può cambiare (cuffie collegate): ricalcola ogni ~1 s.
             recorded = backend.resolve_input_id(&input);
         }

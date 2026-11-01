@@ -9,7 +9,7 @@ mod imp {
     };
     use windows::Win32::Graphics::Gdi::{CreateBitmap, DeleteObject, MONITOR_DEFAULTTONULL, MonitorFromPoint};
     use windows::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
-    use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance};
+    use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx};
     use windows::Win32::System::Threading::{
         CreateEventW, CreateMutexW, EVENT_MODIFY_STATE, INFINITE, OpenEventW, SetEvent, WaitForSingleObject,
     };
@@ -111,6 +111,8 @@ mod imp {
     impl Taskbar {
         pub fn new(hwnd: isize) -> Option<Self> {
             unsafe {
+                // Il thread dell'interfaccia è normalmente già inizializzato (STA).
+                let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
                 let list: ITaskbarList3 = CoCreateInstance(&TaskbarList, None, CLSCTX_INPROC_SERVER).ok()?;
                 list.HrInit().ok()?;
                 Some(Self { list, hwnd: HWND(hwnd as _), icon: None, current: None })
