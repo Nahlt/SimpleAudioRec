@@ -8,7 +8,7 @@ A minimal desktop app for recording online meetings (Microsoft Teams, Zoom, Meet
 - Gapless pause, per-channel loudness normalization (−16 LUFS), recovery after a crash.
 - A single portable `.exe`: no installation, no network connection.
 
-Full requirements (Italian): [docs/REQUISITI.md](docs/REQUISITI.md). User guide (Italian): [LEGGIMI.txt](LEGGIMI.txt).
+Full requirements: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) (Italian original: [REQUISITI.md](docs/REQUISITI.md)). User guide: [README.txt](README.txt) (Italian: [LEGGIMI.txt](LEGGIMI.txt)).
 
 ## Download
 

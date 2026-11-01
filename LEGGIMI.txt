@@ -1,5 +1,6 @@
 SimpleAudioRec - versione portabile per Windows 11
 =================================================
+(English version: README.txt)
 
 AVVIO
   Fai doppio clic su SimpleAudioRec.exe. Non serve installare nulla.

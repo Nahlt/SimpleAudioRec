@@ -40,7 +40,7 @@ jobs:
           $ver = if ($env:GITHUB_REF -like 'refs/tags/v*') { $env:GITHUB_REF_NAME } else { "main-$($env:GITHUB_SHA.Substring(0,7))" }
           $dir = "dist/SimpleAudioRec"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          Copy-Item target/release/SimpleAudioRec.exe, LEGGIMI.txt, LICENSE, THIRD_PARTY_NOTICES.txt $dir
+          Copy-Item target/release/SimpleAudioRec.exe, LEGGIMI.txt, README.txt, LICENSE, THIRD_PARTY_NOTICES.txt $dir
           Compress-Archive -Path "$dir/*" -DestinationPath "dist/SimpleAudioRec-$ver-win64.zip" -Force
           Get-ChildItem dist -Recurse | Format-Table Name, Length
 

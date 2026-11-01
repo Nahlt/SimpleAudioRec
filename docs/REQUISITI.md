@@ -1,8 +1,10 @@
 # SimpleAudioRec — Specifica dei requisiti v1
 
+*English version: [REQUIREMENTS.md](REQUIREMENTS.md)*
+
 | | |
 |---|---|
-| Versione documento | 0.2 |
+| Versione documento | 0.3 |
 | Data | 2026-11-01 |
 | Piattaforma v1 | Windows 11 x64 |
 | Licenza | GPLv3 |
@@ -16,6 +18,7 @@ Priorità usate: **M** = Must (obbligatorio v1), **S** = Should (nice to have v1
 |---|---|
 | 0.1 | Prima stesura. |
 | 0.2 | Nome dell'app: *SimpleAudioRec* (era *SimpleRec*). Il "predefinito" segue il dispositivo **per comunicazioni** (RF-01/02/03). Il mute agisce su **tutti** i microfoni attivi (RF-20, RF-23, RF-24). Aggiunti il formato mono mixato, l'opzione "genera entrambi i formati" e il suffisso `_stereo`/`_mono` nel nome (RF-44a/b, RF-41). Normalizzazione di **loudness** al posto di quella di picco (RF-45). Aggiunti il salvataggio automatico (RF-48), i **segnalibri** (§3.8), l'istanza singola, la posizione della finestra e i tag ID3. Aggiunte la pipeline di build e la distribuzione (§6.1). |
+| 0.3 | Icona neutra (documento), senza riferimenti alla registrazione (§4). Le Release si pubblicano dal sito GitHub e la pipeline vi allega lo zip (§6.1). Aggiunte le versioni inglesi di requisiti e guida utente. |
 
 ---
 
@@ -146,7 +149,7 @@ Combinazioni attive anche quando SimpleAudioRec non è in primo piano (es. mentr
 
 - Finestra normale, compatta, dimensione fissa; **non** sempre in primo piano; riducibile nella barra delle applicazioni; **nessuna** icona nella system tray; nessun avvio automatico con Windows.
 - La posizione della finestra viene ricordata tra un avvio e l'altro (se lo schermo non è più disponibile, la finestra viene centrata).
-- Icona dell'app originale, pulita, in stile Windows 11 (Fluent).
+- Icona dell'app originale e neutra (un documento su fondo grigio), in stile Windows 11, senza riferimenti all'audio o alla registrazione.
 - Contenuto della finestra principale:
 
 ```
@@ -209,7 +212,7 @@ Dipendenze previste (tutte compatibili GPLv3): `eframe`/`egui` (MIT/Apache-2.0),
 - Compilazione locale di verifica (anche cross-compilata da Linux) e test unitari del modulo `core`.
 - **GitHub Actions** su runner `windows-latest` (target `x86_64-pc-windows-msvc`, CRT statico):
   - a ogni push su `main` e manualmente: test + build, exe scaricabile dagli *Artifacts* dell'esecuzione;
-  - a ogni tag `v*` (es. `v0.1.0`): anche una **Release** con lo zip (`SimpleAudioRec.exe`, `LEGGIMI.txt`, `LICENSE`, `THIRD_PARTY_NOTICES.txt`).
+  - alla pubblicazione di una **Release** dal sito GitHub (con un nuovo tag, es. `v0.1.0`): lo zip (`SimpleAudioRec.exe`, `LEGGIMI.txt`, `README.txt`, `LICENSE`, `THIRD_PARTY_NOTICES.txt`) viene allegato alla Release.
 - I test funzionali con l'audio reale si fanno su un PC Windows 11 (i runner non hanno dispositivi audio).
 
 ## 7. Fuori ambito v1 / roadmap
