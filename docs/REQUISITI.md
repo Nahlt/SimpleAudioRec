@@ -201,7 +201,7 @@ Struttura a moduli, con l'audio dietro un'astrazione per il futuro porting su Li
 | `audio::pipewire` | V2 — implementazione Linux. |
 | `app` | UI egui, hotkey globali, dialoghi, istanza singola, overlay nella barra delle applicazioni. |
 
-Dipendenze previste (tutte compatibili GPLv3): `eframe`/`egui` (MIT/Apache-2.0), `windows` (MIT/Apache-2.0), LAME tramite binding Rust, collegata staticamente (LGPL), `global-hotkey` (MIT/Apache-2.0), `rfd` per i dialoghi (MIT), `serde` + `toml` (MIT/Apache-2.0), `rubato` per il ricampionamento (MIT), `ebur128` per la misura di loudness (MIT), `id3` per i tag (MIT). Le licenze di terze parti sono raccolte in `THIRD_PARTY_NOTICES.txt`, distribuito con l'exe.
+Dipendenze previste (tutte compatibili GPLv3): `eframe`/`egui` (MIT/Apache-2.0), `windows` (MIT/Apache-2.0), LAME tramite binding Rust, collegata staticamente (LGPL), `global-hotkey` (MIT/Apache-2.0), `rfd` per i dialoghi (MIT), `serde` + `toml` (MIT/Apache-2.0), `ebur128` per la misura di loudness (MIT), `id3` per i tag (MIT). Il ricampionamento adattivo (conversione a 48 kHz e compensazione della deriva) è implementato nel modulo `core` (sinc polifase con finestra di Kaiser) invece di usare `rubato`, per avere un componente piccolo e testato sul caso d'uso. L'interfaccia usa il backend OpenGL di eframe (`glow`), più leggero e rapido all'avvio. Le licenze di terze parti sono raccolte in `THIRD_PARTY_NOTICES.txt`, distribuito con l'exe.
 
 ### 6.1 Build e distribuzione
 

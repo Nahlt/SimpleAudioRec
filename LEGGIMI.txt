@@ -1,0 +1,50 @@
+SimpleAudioRec - versione portabile per Windows 11
+=================================================
+
+AVVIO
+  Fai doppio clic su SimpleAudioRec.exe. Non serve installare nulla.
+
+  Al primo avvio Windows potrebbe mostrare "Windows ha protetto il PC":
+  clicca su "Ulteriori informazioni" e poi su "Esegui comunque".
+  Sui PC aziendali le policy potrebbero richiedere l'autorizzazione dell'IT.
+
+USO RAPIDO
+  1. Avvia la registrazione con "Rec" (o Ctrl+Alt+R, anche mentre usi Teams).
+  2. "Pausa" (Ctrl+Alt+P) sospende: il tratto in pausa non finisce nel file.
+  3. "Mute" (Ctrl+Alt+M) silenzia TUTTI i microfoni a livello di sistema:
+     Teams non ti sente e la tua voce non viene registrata. Premi di nuovo per riattivare.
+     Nota: il pulsante mute interno di Teams non è visibile a SimpleAudioRec.
+  4. "Segna" (Ctrl+Alt+B) aggiunge un segnalibro nel punto corrente.
+  5. "Stop" (Ctrl+Alt+S) termina: scegli se generare entrambi i formati,
+     rinomina i segnalibri e premi "Salva…".
+
+  Indicatori: verde = arriva audio dagli altri partecipanti (output),
+  arancione = arriva audio dal tuo microfono, rosso = registrazione in corso.
+
+FILE PRODOTTI
+  2026-11-01_14-30_stereo.mp3   microfono a sinistra, partecipanti a destra
+                                (ideale per la trascrizione)
+  2026-11-01_14-30_mono.mp3     tutto mixato (ideale per il riascolto)
+  2026-11-01_14-30_segnalibri.txt   elenco dei segnalibri (anche come capitoli nell'MP3)
+
+  Il formato predefinito e l'opzione "entrambi i formati" sono nelle impostazioni (ingranaggio).
+
+CONSIGLI
+  - Usa le cuffie: con gli altoparlanti il microfono riprende anche le voci degli altri.
+  - Di default SimpleAudioRec registra i dispositivi "predefiniti per comunicazioni",
+    quelli che usa normalmente Teams. Se in Teams hai scelto un dispositivo specifico,
+    seleziona lo stesso nelle impostazioni.
+  - Per registrare solo l'audio di Teams (senza notifiche o altri suoni del PC),
+    scegli come output "Solo l'applicazione: ms-teams.exe" mentre Teams è in chiamata.
+
+RECUPERO
+  Durante la registrazione l'audio viene scritto continuamente su disco: se il PC o
+  l'app si chiudono all'improvviso, al riavvio successivo ti verrà proposto il recupero.
+
+IMPOSTAZIONI
+  Sono salvate nel file SimpleAudioRec.toml in questa cartella (oppure in
+  %APPDATA%\SimpleAudioRec se la cartella è in sola lettura), insieme alla
+  sottocartella "recovery". Per ripristinare i valori iniziali basta cancellare il file.
+
+LICENZE
+  GPL v3 (vedi LICENSE). Componenti di terze parti: THIRD_PARTY_NOTICES.txt.
